@@ -1,4 +1,4 @@
-TicTacToe
+Dominoes
 =========
 
-TicTacToe game
+Dominoes game

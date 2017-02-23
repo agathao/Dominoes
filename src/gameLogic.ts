@@ -110,7 +110,7 @@ module gameLogic {
       player.hand.splice(index, 1);
     }
     else {
-      throw new Error("Unknown array element " + JSON.stringify(tileKey));
+      throw new Error("Unknown tile " + JSON.stringify(tileKey));
     }
   }
 
@@ -251,7 +251,12 @@ module gameLogic {
   function canPlayATile(tiles: ITile[], board: IBoard) : boolean {
     for(var i = 0; i < tiles.length; i++) {
       var tile : ITile = tiles[i];
-      if(tile.leftNumber === board.currentLeft || tile.rightNumber === board.currentRight) {
+      //This is the first tile
+      if(!board.root) {
+        if (tile.leftNumber == tile.rightNumber) {
+          return true;
+        }
+      } else if(tile.leftNumber === board.currentLeft || tile.rightNumber === board.currentRight) {
         return true;
       }
     }
@@ -267,25 +272,26 @@ module gameLogic {
     var state: IState = { board: board, delta: delta, players: players, house: house };
     var turnIndex : number = (turnIndexBeforeMove + 1) % state.players.length;
 
-    //If the house is empty and nobody can play, reveal tiles
-    if(!house.hand || house.hand.length === 0) {
-      var canAnyonePlay : boolean = false;
-      for(var i = 0; i < players.length; i++) {
-        if(canPlayATile(players[i].hand, board)) {
-          canAnyonePlay = true;
-          break;
-        }
-      }
-
-      if(canAnyonePlay) {
-        return getGenericMove(turnIndex, state);
-      } else {
-        return createMoveEndGame(board, delta, players, house, turnIndexBeforeMove);
-      }
-    } else {
-      return getGenericMove(turnIndex, state);
+    if(canPlayATile(players[turnIndexBeforeMove].hand, board)) {
+      throw new Error("Player should play and not pass");
+    } //House is not empty and this is not the first tile
+    else if(house.hand && house.hand.length > 0 && board.root) {
+      throw new Error("Player should buy and not pass");
     }
 
+    var canAnyonePlay : boolean = false;
+    for(var i = 0; i < players.length; i++) {
+      if(canPlayATile(players[i].hand, board)) {
+        canAnyonePlay = true;
+        break;
+      }
+    }
+
+    if(canAnyonePlay) {
+      return getGenericMove(turnIndex, state);
+    } else {
+      return createMoveEndGame(board, delta, players, house, turnIndexBeforeMove);
+    }
 
   }
 
@@ -357,6 +363,7 @@ module gameLogic {
   */
   export function createMove(stateBeforeMove: IState, turnIndexBeforeMove: number,
     delta: BoardDelta): IMove {
+
       if (!stateBeforeMove) {
         stateBeforeMove = getInitialState();
       }
@@ -376,6 +383,8 @@ module gameLogic {
       playersAfterMove = angular.copy(players);
       playerAfterMove = angular.copy(players[turnIndexBeforeMove]);
       houseAfterMove = angular.copy(house);
+
+      var finalMove: IMove;
 
       //If there was no tile on the board before, this is the first tile
       if (Play.LEFT === play || Play.RIGHT === play) {

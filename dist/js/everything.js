@@ -31917,6 +31917,19 @@ var gamingPlatform;
 })(gamingPlatform || (gamingPlatform = {}));
 //# sourceMappingURL=angularExceptionHandler.js.map
 ;
+var Orientation;
+(function (Orientation) {
+    Orientation[Orientation["LEFT_RIGHT"] = 0] = "LEFT_RIGHT";
+    Orientation[Orientation["RIGHT_LEFT"] = 1] = "RIGHT_LEFT";
+})(Orientation || (Orientation = {}));
+var Play;
+(function (Play) {
+    Play[Play["LEFT"] = 0] = "LEFT";
+    Play[Play["RIGHT"] = 1] = "RIGHT";
+    Play[Play["BUY"] = 2] = "BUY";
+    Play[Play["PASS"] = 3] = "PASS";
+    Play[Play["END"] = 4] = "END";
+})(Play || (Play = {}));
 var gameService = gamingPlatform.gameService;
 var alphaBetaService = gamingPlatform.alphaBetaService;
 var translate = gamingPlatform.translate;
@@ -31925,115 +31938,276 @@ var log = gamingPlatform.log;
 var dragAndDropService = gamingPlatform.dragAndDropService;
 var gameLogic;
 (function (gameLogic) {
-    gameLogic.ROWS = 3;
-    gameLogic.COLS = 3;
-    /** Returns the initial TicTacToe board, which is a ROWSxCOLS matrix containing ''. */
-    function getInitialBoard() {
-        var board = [];
-        for (var i = 0; i < gameLogic.ROWS; i++) {
-            board[i] = [];
-            for (var j = 0; j < gameLogic.COLS; j++) {
-                board[i][j] = '';
-            }
+    function setBoardRoot(board, tile) {
+        board.root = tile;
+        board.leftMostTile = tile;
+        board.rightMostTile = tile;
+        board.currentRight = tile.rightNumber;
+        board.currentLeft = tile.leftNumber;
+    }
+    function addTileToTheRight(board, playedTile) {
+        var previousRightTile = board.root;
+        while (previousRightTile.tileKey != board.rightMostTile.tileKey) {
+            previousRightTile = previousRightTile.rightTile;
         }
-        return board;
+        previousRightTile.rightTile = playedTile;
+        board.rightMostTile = playedTile;
+        if (board.currentRight == playedTile.leftNumber) {
+            playedTile.orientation = Orientation.LEFT_RIGHT;
+            board.currentRight = playedTile.rightNumber;
+        }
+        else {
+            playedTile.orientation = Orientation.RIGHT_LEFT;
+            board.currentRight = playedTile.leftNumber;
+        }
+    }
+    function addTileToTheLeft(board, playedTile) {
+        var previousLeftTile = board.root;
+        while (previousLeftTile.tileKey != board.leftMostTile.tileKey) {
+            previousLeftTile = previousLeftTile.leftTile;
+        }
+        previousLeftTile.leftTile = playedTile;
+        board.leftMostTile = playedTile;
+        if (board.currentLeft == playedTile.leftNumber) {
+            playedTile.orientation = Orientation.RIGHT_LEFT;
+            board.currentLeft = playedTile.rightNumber;
+        }
+        else {
+            playedTile.orientation = Orientation.LEFT_RIGHT;
+            board.currentLeft = playedTile.leftNumber;
+        }
+    }
+    function addTileToHand(player, tile) {
+        player.hand.unshift(tile);
+    }
+    function removeTileFromHand(player, tileKey) {
+        var index = player.hand.map(function (t) { return t.tileKey; }).indexOf(tileKey);
+        if (index !== undefined && index !== -1) {
+            player.hand.splice(index, 1);
+        }
+        else {
+            throw new Error("Unknown tile " + JSON.stringify(tileKey));
+        }
+    }
+    function getNumberOfRemainingTiles(player) {
+        return player.hand.length;
+    }
+    /** Returns the initial Dominoes board. */
+    function getInitialBoard() {
+        return {};
     }
     gameLogic.getInitialBoard = getInitialBoard;
-    function getInitialState() {
-        return { board: getInitialBoard(), delta: null };
+    function shuffle(tiles) {
+        var j, x, i;
+        for (i = tiles.length; i; i--) {
+            j = Math.floor(Math.random() * i);
+            x = tiles[i - 1];
+            tiles[i - 1] = tiles[j];
+            tiles[j] = x;
+        }
     }
-    gameLogic.getInitialState = getInitialState;
-    /**
-     * Returns true if the game ended in a tie because there are no empty cells.
-     * E.g., isTie returns true for the following board:
-     *     [['X', 'O', 'X'],
-     *      ['X', 'O', 'O'],
-     *      ['O', 'X', 'X']]
-     */
-    function isTie(board) {
-        for (var i = 0; i < gameLogic.ROWS; i++) {
-            for (var j = 0; j < gameLogic.COLS; j++) {
-                if (board[i][j] === '') {
-                    // If there is an empty cell then we do not have a tie.
-                    return false;
+    function getInitialState() {
+        var players = [], house = { id: -1, hand: [] }, numOfPlayers = 2, i = 0, j = 0, k = 0, assignedTiles = 0, currentPlayerIndex = 0, tiles = [];
+        //Create tiles
+        for (i = 0; i < 7; i++) {
+            for (j = 0; j <= i; j++) {
+                var currentTile = { tileKey: 'tile' + k, leftNumber: j, rightNumber: i };
+                tiles[k] = currentTile;
+                k++;
+            }
+        }
+        //Shuffle tiles
+        shuffle(tiles);
+        //Assign tiles to players and remaining tiles to the house
+        var tilesToAssign = numOfPlayers === 2 ? 7 : 5;
+        assignedTiles = 0;
+        currentPlayerIndex = 0;
+        for (i = 0; i < tiles.length; i++) {
+            if (currentPlayerIndex < numOfPlayers) {
+                if (!players[currentPlayerIndex]) {
+                    players[currentPlayerIndex] = { id: currentPlayerIndex, hand: [] };
+                }
+                players[currentPlayerIndex].hand.push(tiles[i]);
+                assignedTiles++;
+                if (assignedTiles === tilesToAssign) {
+                    currentPlayerIndex++;
+                    assignedTiles = 0;
                 }
             }
+            else {
+                house.hand.push(tiles[i]);
+            }
         }
-        // No empty cells, so we have a tie!
-        return true;
+        return { board: getInitialBoard(), delta: null, players: players, house: house };
+    }
+    gameLogic.getInitialState = getInitialState;
+    function getTileFromKey(tiles, key) {
+        var index = tiles.map(function (t) { return t.tileKey; }).indexOf(key);
+        return tiles[index];
+    }
+    function hasWon(currentPlayer) {
+        return getNumberOfRemainingTiles(currentPlayer) === 0;
+    }
+    function getGenericMove(turn, state) {
+        return { turnIndex: turn, state: state, endMatchScores: null };
+    }
+    function getRemainingPoints(player) {
+        var tile, points = 0;
+        for (var i = 0; i < player.hand.length; i++) {
+            points = points + player.hand[i].leftNumber + player.hand[i].rightNumber;
+        }
+        return points;
+    }
+    function validateTiles(tile, currentNumber) {
+        if (tile.rightNumber !== currentNumber && tile.leftNumber !== currentNumber) {
+            throw new Error("Cannot place tile at the board! Numbers are invalid.");
+        }
+    }
+    function getEndMatchScores(players) {
+        var remainingPoints = [], numberOfPlayers = players.length, min = 336, minPlayer = -1, totalPoints = 0;
+        for (var i = 0; i < numberOfPlayers; i++) {
+            remainingPoints[i] = getRemainingPoints(players[i]);
+            totalPoints = totalPoints + remainingPoints[i];
+            if (remainingPoints[i] < min) {
+                min = remainingPoints[i];
+                minPlayer = i;
+            }
+        }
+        var endScores = [];
+        for (var i = 0; i < numberOfPlayers; i++) {
+            if (i === minPlayer) {
+                endScores[i] = totalPoints - 2 * remainingPoints[i];
+            }
+            else {
+                endScores[i] = 0;
+            }
+        }
+        return endScores;
+    }
+    function createMoveEndGame(board, delta, players, house, turnIndexBeforeMove) {
+        var state = { board: board, delta: delta, players: players, house: house };
+        return { endMatchScores: getEndMatchScores(state.players), turnIndex: -1, state: state };
+    }
+    function canPlayATile(tiles, board) {
+        for (var i = 0; i < tiles.length; i++) {
+            var tile = tiles[i];
+            //This is the first tile
+            if (!board.root) {
+                if (tile.leftNumber == tile.rightNumber) {
+                    return true;
+                }
+            }
+            else if (tile.leftNumber === board.currentLeft || tile.rightNumber === board.currentRight) {
+                return true;
+            }
+        }
+        return false;
     }
     /**
-     * Return the winner (either 'X' or 'O') or '' if there is no winner.
-     * The board is a matrix of size 3x3 containing either 'X', 'O', or ''.
-     * E.g., getWinner returns 'X' for the following board:
-     *     [['X', 'O', ''],
-     *      ['X', 'O', ''],
-     *      ['X', '', '']]
+     * In this case we pass the turn to the next player
      */
-    function getWinner(board) {
-        var boardString = '';
-        for (var i = 0; i < gameLogic.ROWS; i++) {
-            for (var j = 0; j < gameLogic.COLS; j++) {
-                var cell = board[i][j];
-                boardString += cell === '' ? ' ' : cell;
+    function createMovePass(board, delta, players, house, turnIndexBeforeMove) {
+        var state = { board: board, delta: delta, players: players, house: house };
+        var turnIndex = (turnIndexBeforeMove + 1) % state.players.length;
+        if (canPlayATile(players[turnIndexBeforeMove].hand, board)) {
+            throw new Error("Player should play and not pass");
+        } //House is not empty and this is not the first tile
+        else if (house.hand && house.hand.length > 0 && board.root) {
+            throw new Error("Player should buy and not pass");
+        }
+        var canAnyonePlay = false;
+        for (var i = 0; i < players.length; i++) {
+            if (canPlayATile(players[i].hand, board)) {
+                canAnyonePlay = true;
+                break;
             }
         }
-        var win_patterns = [
-            'XXX......',
-            '...XXX...',
-            '......XXX',
-            'X..X..X..',
-            '.X..X..X.',
-            '..X..X..X',
-            'X...X...X',
-            '..X.X.X..'
-        ];
-        for (var _i = 0, win_patterns_1 = win_patterns; _i < win_patterns_1.length; _i++) {
-            var win_pattern = win_patterns_1[_i];
-            var x_regexp = new RegExp(win_pattern);
-            var o_regexp = new RegExp(win_pattern.replace(/X/g, 'O'));
-            if (x_regexp.test(boardString)) {
-                return 'X';
-            }
-            if (o_regexp.test(boardString)) {
-                return 'O';
+        if (canAnyonePlay) {
+            return getGenericMove(turnIndex, state);
+        }
+        else {
+            return createMoveEndGame(board, delta, players, house, turnIndexBeforeMove);
+        }
+    }
+    /*
+     * In this case, the domino tile should be removed from the house and added to the player's hand.
+     */
+    function createMoveBuy(board, delta, players, house, turnIndexBeforeMove) {
+        if (getNumberOfRemainingTiles(house) === 0) {
+            throw new Error("One cannot buy from the house when it has no tiles");
+        }
+        var tile = getTileFromKey(house.hand, delta.tileKey);
+        removeTileFromHand(house, delta.tileKey);
+        addTileToHand(players[turnIndexBeforeMove], tile);
+        var state = { board: board, delta: delta, players: players, house: house };
+        return { endMatchScores: null, turnIndex: turnIndexBeforeMove, state: state };
+    }
+    function createMovePlay(board, delta, players, house, turnIndexBeforeMove) {
+        var operations, numberOfPlayers = players.length, playedTile = getTileFromKey(players[turnIndexBeforeMove].hand, delta.tileKey);
+        //Check if someone has already won the game
+        for (var i = 0; i < numberOfPlayers; i++) {
+            if (hasWon(players[i])) {
+                throw new Error("Can only make a move if the game is not over! Player " + i + " has already won.");
             }
         }
-        return '';
+        if (!board.root) {
+            if (playedTile.leftNumber != playedTile.rightNumber) {
+                throw new Error("First tile must be a double");
+            }
+            setBoardRoot(board, playedTile);
+        }
+        else if (delta.play === Play.RIGHT) {
+            var rightTile = board.currentRight;
+            validateTiles(playedTile, rightTile);
+            addTileToTheRight(board, playedTile);
+        }
+        else {
+            var leftTile = board.currentLeft;
+            validateTiles(playedTile, leftTile);
+            addTileToTheLeft(board, playedTile);
+        }
+        removeTileFromHand(players[turnIndexBeforeMove], delta.tileKey);
+        var state = { board: board, delta: delta, players: players, house: house };
+        if (getNumberOfRemainingTiles(players[turnIndexBeforeMove]) !== 0) {
+            var nextTurn = (turnIndexBeforeMove + 1) % numberOfPlayers;
+            return getGenericMove(nextTurn, state);
+        }
+        else {
+            delta.play = Play.END;
+            return createMoveEndGame(board, delta, players, house, turnIndexBeforeMove);
+        }
     }
     /**
-     * Returns the move that should be performed when player
-     * with index turnIndexBeforeMove makes a move in cell row X col.
-     */
-    function createMove(stateBeforeMove, row, col, turnIndexBeforeMove) {
+    * Returns the move that should be performed when player with index
+    * turnIndexBeforeMove makes a move.
+    */
+    function createMove(stateBeforeMove, turnIndexBeforeMove, delta) {
         if (!stateBeforeMove) {
             stateBeforeMove = getInitialState();
         }
-        var board = stateBeforeMove.board;
-        if (board[row][col] !== '') {
-            throw new Error("One can only make a move in an empty position!");
+        var operations, boardAfterMove, playersAfterMove, playerAfterMove, houseAfterMove, playedTileKey = !(delta) ? undefined : delta.tileKey, play = delta === undefined ? undefined : delta.play, players = stateBeforeMove.players, house = stateBeforeMove.house, board = stateBeforeMove.board;
+        boardAfterMove = angular.copy(board);
+        playersAfterMove = angular.copy(players);
+        playerAfterMove = angular.copy(players[turnIndexBeforeMove]);
+        houseAfterMove = angular.copy(house);
+        var finalMove;
+        //If there was no tile on the board before, this is the first tile
+        if (Play.LEFT === play || Play.RIGHT === play) {
+            return createMovePlay(boardAfterMove, delta, playersAfterMove, houseAfterMove, turnIndexBeforeMove);
         }
-        if (getWinner(board) !== '' || isTie(board)) {
-            throw new Error("Can only make a move if the game is not over!");
+        else if (Play.BUY === play) {
+            return createMoveBuy(boardAfterMove, delta, playersAfterMove, houseAfterMove, turnIndexBeforeMove);
         }
-        var boardAfterMove = angular.copy(board);
-        boardAfterMove[row][col] = turnIndexBeforeMove === 0 ? 'X' : 'O';
-        var winner = getWinner(boardAfterMove);
-        var endMatchScores;
-        var turnIndex;
-        if (winner !== '' || isTie(boardAfterMove)) {
-            // Game over.
-            turnIndex = -1;
-            endMatchScores = winner === 'X' ? [1, 0] : winner === 'O' ? [0, 1] : [0, 0];
+        else if (Play.PASS == play) {
+            return createMovePass(boardAfterMove, delta, playersAfterMove, houseAfterMove, turnIndexBeforeMove);
+        }
+        else if (Play.END === play) {
+            var stateAfterMove = angular.copy(stateBeforeMove);
+            return createMoveEndGame(boardAfterMove, delta, playersAfterMove, houseAfterMove, turnIndexBeforeMove);
         }
         else {
-            // Game continues. Now it's the opponent's turn (the turn switches from 0 to 1 and 1 to 0).
-            turnIndex = 1 - turnIndexBeforeMove;
-            endMatchScores = null;
+            throw new Error("Unknown play");
         }
-        var delta = { row: row, col: col };
-        var state = { delta: delta, board: boardAfterMove };
-        return { endMatchScores: endMatchScores, turnIndex: turnIndex, state: state };
     }
     gameLogic.createMove = createMove;
     function createInitialMove() {
@@ -32042,7 +32216,7 @@ var gameLogic;
     }
     gameLogic.createInitialMove = createInitialMove;
     function forSimpleTestHtml() {
-        var move = gameLogic.createMove(null, 0, 0, 0);
+        var move = gameLogic.createInitialMove();
         log.log("move=", move);
     }
     gameLogic.forSimpleTestHtml = forSimpleTestHtml;
@@ -32065,13 +32239,27 @@ var game;
     // For community games.
     game.proposals = null;
     game.yourPlayerInfo = null;
+    game.treeStructure = [
+        [0],
+        [1, 2, 3, 4, 5, 6, 7],
+        [1, 2, 3, 4, 5, 6],
+        [7],
+        [8],
+        [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+        [8],
+        [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22] //tree7
+    ];
+    game.treeSourcesCache = [];
+    game.treeClassesCache = [];
+    game.tileCache = [];
+    game.selectedTile = undefined; //The tile currently selected for play
     function init($rootScope_, $timeout_) {
         game.$rootScope = $rootScope_;
         game.$timeout = $timeout_;
         registerServiceWorker();
         translate.setTranslations(getTranslations());
         translate.setLanguage('en');
-        resizeGameAreaService.setWidthToHeight(1);
+        resizeGameAreaService.setWidthToHeight(2);
         gameService.setGame({
             updateUI: updateUI,
             communityUI: communityUI,
@@ -32094,7 +32282,28 @@ var game;
         }
     }
     function getTranslations() {
-        return {};
+        return {
+            "SCORE": {
+                "en": "SCORE",
+                "iw": "SCORE",
+                "pt": "Pontos",
+                "zh": "SCORE",
+                "el": "SCORE",
+                "fr": "POINTS",
+                "hi": "SCORE",
+                "es": "Puntos"
+            },
+            "PASS": {
+                "en": "PASS",
+                "iw": "PASS",
+                "pt": "PASSAR",
+                "zh": "PASS",
+                "el": "PASS",
+                "fr": "PASSER",
+                "hi": "PASS",
+                "es": "PASAR"
+            }
+        };
     }
     function communityUI(communityUI) {
         log.info("Game got communityUI:", communityUI);
@@ -32120,17 +32329,17 @@ var game;
         var playerIdToProposal = communityUI.playerIdToProposal;
         game.didMakeMove = !!playerIdToProposal[communityUI.yourPlayerInfo.playerId];
         game.proposals = [];
-        for (var i = 0; i < gameLogic.ROWS; i++) {
-            game.proposals[i] = [];
-            for (var j = 0; j < gameLogic.COLS; j++) {
-                game.proposals[i][j] = 0;
-            }
-        }
-        for (var playerId in playerIdToProposal) {
-            var proposal = playerIdToProposal[playerId];
-            var delta = proposal.data;
-            game.proposals[delta.row][delta.col]++;
-        }
+        // for (let i = 0; i < gameLogic.ROWS; i++) {
+        //   proposals[i] = [];
+        //   for (let j = 0; j < gameLogic.COLS; j++) {
+        //     proposals[i][j] = 0;
+        //   }
+        // }
+        // for (let playerId in playerIdToProposal) {
+        //   let proposal = playerIdToProposal[playerId];
+        //   let delta = proposal.data;
+        //   proposals[delta.row][delta.col]++;
+        // }
     }
     game.communityUI = communityUI;
     function isProposal(row, col) {
@@ -32146,20 +32355,166 @@ var game;
     }
     game.isProposal2 = isProposal2;
     function updateUI(params) {
-        log.info("Game got updateUI:", params);
+        game.selectedTile = undefined; //TODO: might be able to remove this
+        log.info("Dominoes game got updateUI:", params);
         game.didMakeMove = false; // Only one move per updateUI
         game.currentUpdateUI = params;
-        clearAnimationTimeout();
+        //clearAnimationTimeout();
         game.state = params.state;
         if (isFirstMove()) {
             game.state = gameLogic.getInitialState();
         }
+        populateCaches(0, 0, undefined, undefined);
+        //TODO if needed: If the state exists and it is a reveal play, create an end of game play
+        //TODO if needed: if the previous play was a pass move, and the current play was also a pass move,
         // We calculate the AI move only after the animation finishes,
         // because if we call aiService now
         // then the animation will be paused until the javascript finishes.
         game.animationEndedTimeout = game.$timeout(animationEndedCallback, 500);
     }
     game.updateUI = updateUI;
+    function getClassForTree(tree, flipped) {
+        if (tree === 0) {
+            return "rootTile";
+        }
+        if (tree === 1 || tree === 2) {
+            if (flipped) {
+                return "horizontalTile";
+            }
+            return "horizontalTileFlip";
+        }
+        if (tree === 3 || tree === 4) {
+            if (flipped) {
+                return "maxWidthHeightTile";
+            }
+            else {
+                return "maxWidthHeightTileFlip";
+            }
+        }
+        if (tree === 5) {
+            if (flipped) {
+                return "tree5TileFlip";
+            }
+            else {
+                return "tree5Tile";
+            }
+        }
+        if (tree === 6) {
+            if (flipped) {
+                return "maxWidthHeightTile";
+            }
+            else {
+                return "maxWidthHeightTileFlip";
+            }
+        }
+        if (tree === 7) {
+            if (flipped) {
+                return "tree5TileFlip";
+            }
+            else {
+                return "tree5Tile";
+            }
+        }
+    }
+    function getTreeAfter(tree, isRight) {
+        if (isRight) {
+            if (tree === 0) {
+                return 1;
+            }
+            if (tree === 1) {
+                return 6;
+            }
+            if (tree === 6) {
+                return 7;
+            }
+            if (tree === 7) {
+                return 8;
+            }
+            return undefined;
+        }
+        else {
+            if (tree === 0) {
+                return 2;
+            }
+            if (tree === 2) {
+                return 3;
+            }
+            if (tree === 3) {
+                return 4;
+            }
+            if (tree === 4) {
+                return 5;
+            }
+            return undefined;
+        }
+    }
+    function isTileFlipped(tile) {
+        return tile && tile.orientation === Orientation.RIGHT_LEFT;
+    }
+    function populateCaches(tree, tileLevel, isRight, parent) {
+        if (!game.state) {
+            return;
+        }
+        var board = game.state.board;
+        var tile = undefined; //The tile
+        if (!board || !board.root) {
+            return;
+        }
+        var flipped = false;
+        //if on the first tile, populate both right and left trees and then return
+        if (tileLevel === 0) {
+            tile = game.state.board.root;
+            flipped = isTileFlipped(tile); //Whether or not the tile is flipped
+            if (!game.tileCache[tree]) {
+                game.treeSourcesCache[tree] = [];
+                game.treeClassesCache[tree] = [];
+                game.tileCache[tree] = [];
+            }
+            var image = constructImageUrl(tile === undefined ? undefined : tile);
+            var imageClass = getClassForTree(tree, false);
+            game.treeSourcesCache[tree][tileLevel] = image;
+            game.treeClassesCache[tree][tileLevel] = imageClass;
+            game.tileCache[tree][tileLevel] = board.root;
+            var nextTree = getTreeAfter(tree, true);
+            var nextLevel = game.treeStructure[nextTree][0];
+            populateCaches(nextTree, nextLevel, true, board.root);
+            nextTree = getTreeAfter(tree, false);
+            nextLevel = game.treeStructure[nextTree][0];
+            populateCaches(nextTree, nextLevel, false, board.root);
+            return;
+        }
+        tile = isRight ? parent.rightTile : parent.leftTile;
+        flipped = isTileFlipped(tile); //Whether or not the tile is flipped
+        if (tile === undefined) {
+            return;
+        }
+        var orientation = flipped ? "flipped" : "regular";
+        var image = constructImageUrl(tile);
+        var imageClass = getClassForTree(tree, orientation === "flipped");
+        if (!game.tileCache[tree]) {
+            game.treeSourcesCache[tree] = [];
+            game.treeClassesCache[tree] = [];
+            game.tileCache[tree] = [];
+        }
+        game.treeSourcesCache[tree][tileLevel] = image;
+        game.treeClassesCache[tree][tileLevel] = imageClass;
+        game.tileCache[tree][tileLevel] = tile;
+        //Set next tile on the tree
+        var nextTree;
+        var nextLevel;
+        //if on last tile
+        if (tileLevel === game.treeStructure[tree][game.treeStructure[tree].length - 1]) {
+            nextTree = getTreeAfter(tree, isRight);
+            nextLevel = nextTree === undefined ? undefined : game.treeStructure[nextTree][0];
+        }
+        else {
+            nextTree = tree;
+            nextLevel = tileLevel + 1;
+        }
+        if (nextTree !== undefined) {
+            populateCaches(nextTree, nextLevel, isRight, tile);
+        }
+    }
     function animationEndedCallback() {
         log.info("Animation ended");
         maybeSendComputerMove();
@@ -32194,13 +32549,13 @@ var game;
             var delta = move.state.delta;
             var myProposal = {
                 data: delta,
-                chatDescription: '' + (delta.row + 1) + 'x' + (delta.col + 1),
+                chatDescription: '',
                 playerInfo: game.yourPlayerInfo,
             };
             // Decide whether we make a move or not (if we have 2 other proposals supporting the same thing).
-            if (game.proposals[delta.row][delta.col] < 2) {
-                move = null;
-            }
+            // if (proposals[delta.row][delta.col] < 2) {
+            //   move = null;
+            // }
             gameService.communityMove(myProposal, move);
         }
     }
@@ -32226,45 +32581,250 @@ var game;
             game.currentUpdateUI.turnIndex >= 0 &&
             game.currentUpdateUI.yourPlayerIndex === game.currentUpdateUI.turnIndex; // it's my turn
     }
-    function cellClicked(row, col) {
-        log.info("Clicked on cell:", row, col);
+    function shouldSlowlyAppear(tileIndex) {
+        return game.state.delta && game.state.delta.play === Play.BUY &&
+            game.state.players[yourPlayerIndex()].hand[tileIndex] === game.state.delta.tileKey;
+    }
+    game.shouldSlowlyAppear = shouldSlowlyAppear;
+    function passPlay() {
+        log.info("Clicked to create pass move");
         if (!isHumanTurn())
             return;
+        try {
+            var play = Play.PASS;
+            game.selectedTile = undefined;
+            var move = gameLogic.createMove(game.state, game.currentUpdateUI.turnIndex, { play: play });
+            log.info("Making move to pass");
+            gameService.makeMove(move);
+        }
+        catch (e) {
+            log.info("Cannot make pass play");
+            return;
+        }
+    }
+    game.passPlay = passPlay;
+    function isRightTree(tree) {
+        return (tree === 0 || tree === 1 || tree === 6 || tree === 7 || tree === 8);
+    }
+    function makeBuyPlay(tileIndex) {
+        log.info(["Tried to buy tile:", tileIndex]);
         if (window.location.search === '?throwException') {
             throw new Error("Throwing the error because URL has '?throwException'");
         }
-        var nextMove = null;
-        try {
-            nextMove = gameLogic.createMove(game.state, row, col, game.currentUpdateUI.turnIndex);
-        }
-        catch (e) {
-            log.info(["Cell is already full in position:", row, col]);
+        if (!isHumanTurn() || !game.state ||
+            !game.state.house || !game.state.house.hand[tileIndex]) {
             return;
         }
-        // Move is legal, make it!
-        makeMove(nextMove);
+        try {
+            var delta = { play: Play.BUY, tileKey: game.state.house.hand[tileIndex].tileKey };
+            var move = gameLogic.createMove(game.state, game.currentUpdateUI.turnIndex, delta);
+            game.selectedTile = undefined;
+            gameService.makeMove(move);
+        }
+        catch (e) {
+            log.info(["Cannot make buy play for tile:", tileIndex]);
+            return;
+        }
     }
-    game.cellClicked = cellClicked;
-    function shouldShowImage(row, col) {
-        return game.state.board[row][col] !== "" || isProposal(row, col);
+    game.makeBuyPlay = makeBuyPlay;
+    function placeTileOnTree(treeId) {
+        log.info(["Tried to make play for tree:", treeId]);
+        if (window.location.search === '?throwException') {
+            throw new Error("Throwing the error because URL has '?throwException'");
+        }
+        if (!isHumanTurn() || game.selectedTile === undefined) {
+            return;
+        }
+        try {
+            var play = isRightTree(treeId) ? Play.RIGHT : Play.LEFT;
+            var delta = { play: play, tileKey: game.selectedTile.tileKey };
+            var move = gameLogic.createMove(game.state, game.currentUpdateUI.turnIndex, delta);
+            game.selectedTile = undefined;
+            gameService.makeMove(move);
+        }
+        catch (e) {
+            log.info(["Cannot make play for tree:", treeId]);
+            return;
+        }
+    }
+    game.placeTileOnTree = placeTileOnTree;
+    /*If tile exists, return the real tile. Otherwise, return blank tile.
+    * Also take into consideration that the lower number of the tile is always on the left of the name.
+    */
+    function constructImageUrl(tile) {
+        if (tile === undefined || tile === null) {
+            return "imgs/dominoes/domino-blank.svg";
+        }
+        return tile.leftNumber <= tile.rightNumber ?
+            "imgs/dominoes/domino-" + tile.leftNumber + "-" + tile.rightNumber + ".svg" :
+            "imgs/dominoes/domino-" + tile.rightNumber + "-" + tile.leftNumber + ".svg";
+    }
+    //TODO: RETURN FOR GAME END
+    function getTileImageSourceForOpponent(playerId, tileId) {
+        return constructImageUrl(undefined);
+    }
+    game.getTileImageSourceForOpponent = getTileImageSourceForOpponent;
+    function getTileImageSourceForCurrentPlayer(tileId) {
+        return getTileImageSourceForPlayer(yourPlayerIndex(), tileId);
+    }
+    game.getTileImageSourceForCurrentPlayer = getTileImageSourceForCurrentPlayer;
+    function getTileImageSourceForPlayer(playerId, tileId) {
+        if (!game.state.players[playerId].hand) {
+            return constructImageUrl(undefined);
+        }
+        return constructImageUrl(game.state.players[playerId].hand[tileId]);
+    }
+    game.getTileImageSourceForPlayer = getTileImageSourceForPlayer;
+    function getOpponentIds() {
+        var currentPlayer = yourPlayerIndex();
+        var players = game.state.players;
+        if (!players) {
+            return [];
+        }
+        var result = [];
+        for (var i = 0; i < players.length; i++) {
+            if (i == currentPlayer) {
+                continue;
+            }
+            result.push(i);
+        }
+        return result;
+    }
+    game.getOpponentIds = getOpponentIds;
+    /* Get number of players but exclude current player
+    */
+    function getNumberOfPlayers() {
+        if (!game.state || !game.state.players) {
+            return 1;
+        }
+        return game.state.players.length - 1;
+    }
+    game.getNumberOfPlayers = getNumberOfPlayers;
+    function getPlayerIconSource(player) {
+        var imageNumber = player % 2; //2 is chosen because there are only two images.
+        if (imageNumber < 0 || imageNumber === -0) {
+            imageNumber = 0;
+        }
+        return "./imgs/player/image" + imageNumber + ".svg";
+    }
+    game.getPlayerIconSource = getPlayerIconSource;
+    function getCurrentPlayerIconSource(player) {
+        return getPlayerIconSource(yourPlayerIndex());
+    }
+    game.getCurrentPlayerIconSource = getCurrentPlayerIconSource;
+    function getArrayUpToNumber(maxNumber) {
+        var result = [];
+        for (var i = 0; i < maxNumber; i++) {
+            result.push(i);
+        }
+        return result;
+    }
+    function getNumberOfTilesForBoneYard() {
+        if (!game.state.house || !game.state.house.hand) {
+            return [];
+        }
+        return getArrayUpToNumber(game.state.house.hand.length);
+    }
+    game.getNumberOfTilesForBoneYard = getNumberOfTilesForBoneYard;
+    function getNumberOfTilesForCurrentPlayer() {
+        return getNumberOfTilesForPlayer(yourPlayerIndex());
+    }
+    game.getNumberOfTilesForCurrentPlayer = getNumberOfTilesForCurrentPlayer;
+    function getNumberOfTilesForPlayer(playerId) {
+        if (!game.state.players || !game.state.players[playerId] || !game.state.players[playerId].hand) {
+            return [];
+        }
+        return getArrayUpToNumber(game.state.players[playerId].hand.length);
+    }
+    game.getNumberOfTilesForPlayer = getNumberOfTilesForPlayer;
+    function hasGameEnded() {
+        return game.currentUpdateUI.turnIndex < 0 || (game.state.delta && game.state.delta.play === Play.END);
+    }
+    game.hasGameEnded = hasGameEnded;
+    function getFinalScore(player) {
+        var scores = game.currentUpdateUI.endMatchScores;
+        return "" + scores[player];
+    }
+    game.getFinalScore = getFinalScore;
+    function getCurrentPlayerFinalScore() {
+        return getFinalScore(yourPlayerIndex());
+    }
+    game.getCurrentPlayerFinalScore = getCurrentPlayerFinalScore;
+    function getTileAt(tileLevel, tree) {
+        if (game.tileCache[tree]) {
+            return game.tileCache[tree][tileLevel];
+        }
+        return undefined;
+    }
+    /* Decide if tile with this numebr should be shown. The tree parameter defines
+    * if we are going left or right
+    */
+    function shouldShowImage(tileLevel, tree) {
+        var tile = getTileAt(tileLevel, tree);
+        return !(tile === undefined);
     }
     game.shouldShowImage = shouldShowImage;
-    function isPiece(row, col, turnIndex, pieceKind) {
-        return game.state.board[row][col] === pieceKind || (isProposal(row, col) && game.currentUpdateUI.turnIndex == turnIndex);
+    function getImageClass(tileLevel, tree, classForComparison) {
+        if (!!game.treeClassesCache[tree] && !!game.treeClassesCache[tree][tileLevel]) {
+            return classForComparison === game.treeClassesCache[tree][tileLevel];
+        }
+        return undefined;
     }
-    function isPieceX(row, col) {
-        return isPiece(row, col, 0, 'X');
+    game.getImageClass = getImageClass;
+    /*Get image source for tile at the indicated level on right or left tree*/
+    function getImageSource(tileLevel, tree) {
+        if (game.treeSourcesCache[tree] && game.treeSourcesCache[tree][tileLevel]) {
+            return game.treeSourcesCache[tree][tileLevel];
+        }
+        return undefined;
     }
-    game.isPieceX = isPieceX;
-    function isPieceO(row, col) {
-        return isPiece(row, col, 1, 'O');
+    game.getImageSource = getImageSource;
+    function canMakeAPlay(playerIndex) {
+        if (!game.state.board || !game.state.players || !game.state.players[playerIndex] || !game.state.players[playerIndex].hand) {
+            return false;
+        }
+        var player = game.state.players[playerIndex];
+        for (var i = 0; i < player.hand.length; i++) {
+            var tile = player.hand[i];
+            if (!game.state.board.root) {
+                if (tile.leftNumber === tile.rightNumber) {
+                    return true;
+                }
+            }
+            else {
+                var board = game.state.board;
+                if (tile.leftNumber === board.currentLeft || tile.leftNumber === board.currentRight ||
+                    tile.rightNumber === board.currentLeft || tile.rightNumber === board.currentRight) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
-    game.isPieceO = isPieceO;
-    function shouldSlowlyAppear(row, col) {
-        return game.state.delta &&
-            game.state.delta.row === row && game.state.delta.col === col;
+    function canBuy() {
+        return game.state.house && game.state.house.hand && game.state.house.hand.length > 0;
     }
-    game.shouldSlowlyAppear = shouldSlowlyAppear;
+    function isPassAllowed() {
+        var canStartOrBuy = canMakeAPlay(yourPlayerIndex()) ||
+            canBuy();
+        ;
+        return !hasGameEnded() && !canStartOrBuy;
+    }
+    game.isPassAllowed = isPassAllowed;
+    function registerSelectedPlayerTile(tileIndex) {
+        game.selectedTile = game.state.players[game.currentUpdateUI.yourPlayerIndex].hand[tileIndex];
+    }
+    game.registerSelectedPlayerTile = registerSelectedPlayerTile;
+    function registerSelectedHouseTile(tileIndex) {
+        game.selectedTile = game.state.house.hand[tileIndex];
+    }
+    game.registerSelectedHouseTile = registerSelectedHouseTile;
+    function isSelectedTile(tileIndex) {
+        var playerId = yourPlayerIndex();
+        var tileKey = game.state.players[playerId] ? game.state.players[playerId].hand[tileIndex] : undefined;
+        return game.selectedTile === undefined ? false : game.selectedTile === tileKey;
+    }
+    game.isSelectedTile = isSelectedTile;
 })(game || (game = {}));
 angular.module('myApp', ['gameServices'])
     .run(['$rootScope', '$timeout',
@@ -32289,10 +32849,65 @@ var aiService;
      */
     function getPossibleMoves(state, turnIndexBeforeMove) {
         var possibleMoves = [];
-        for (var i = 0; i < gameLogic.ROWS; i++) {
-            for (var j = 0; j < gameLogic.COLS; j++) {
+        //This is the initial move
+        if (!state) {
+            possibleMoves.push(gameLogic.createInitialMove());
+            return possibleMoves;
+        }
+        var board = state.board;
+        var hand = state.players[turnIndexBeforeMove].hand;
+        var leftNumber = board.currentLeft;
+        var rightNumber = board.currentRight;
+        var play;
+        var delta;
+        for (var i = 0; i < hand.length; i++) {
+            play = undefined;
+            if (!board || !board.root) {
+                if (hand[i].leftNumber === hand[i].rightNumber) {
+                    play = Play.RIGHT;
+                }
+            }
+            else {
+                play = getPlayBasedOnBoardTiles(hand[i], leftNumber, rightNumber);
+            }
+            if (play !== undefined) {
+                delta = { tileKey: hand[i].tileKey, play: play };
                 try {
-                    possibleMoves.push(gameLogic.createMove(state, i, j, turnIndexBeforeMove));
+                    possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
+                }
+                catch (e) {
+                }
+            }
+        }
+        var houseTiles = state.house.hand;
+        //In case we did not find any play options
+        if (possibleMoves.length === 0) {
+            //If this is not the first tile in the game
+            if (board.root) {
+                //If there are still tiles to buy, make buy play
+                if (houseTiles.length > 0) {
+                    for (var i = 0; i < houseTiles.length; i++) {
+                        var delta = { tileKey: houseTiles[i].tileKey, play: Play.BUY };
+                        try {
+                            possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
+                        }
+                        catch (e) {
+                        }
+                    }
+                }
+                else {
+                    var delta = { tileKey: undefined, play: Play.PASS };
+                    try {
+                        possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
+                    }
+                    catch (e) {
+                    }
+                }
+            }
+            else if (hand.length > 0) {
+                var delta = { tileKey: undefined, play: Play.PASS };
+                try {
+                    possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
                 }
                 catch (e) {
                 }
@@ -32301,6 +32916,15 @@ var aiService;
         return possibleMoves;
     }
     aiService.getPossibleMoves = getPossibleMoves;
+    function getPlayBasedOnBoardTiles(tile, leftNumber, rightNumber) {
+        if (tile.leftNumber === leftNumber || tile.rightNumber === leftNumber) {
+            return Play.LEFT;
+        }
+        else if (tile.leftNumber === rightNumber || tile.rightNumber === rightNumber) {
+            return Play.RIGHT;
+        }
+        return undefined;
+    }
     /**
      * Returns the move that the computer player should do for the given state.
      * alphaBetaLimits is an object that sets a limit on the alpha-beta search,

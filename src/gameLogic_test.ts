@@ -1,23 +1,15 @@
-describe("In TicTacToe", function() {
-  let X_TURN = 0;
-  let O_TURN = 1;
-  let NO_ONE_TURN = -1;
-  let NO_ONE_WINS: number[] = null;
-  let X_WIN_SCORES = [1, 0];
-  let O_WIN_SCORES = [0, 1];
-  let TIE_SCORES = [0, 0];
+describe("In Dominoes", function() {
 
-    
+
+
   function expectException(
       turnIndexBeforeMove: number,
-      boardBeforeMove: Board,
-      row: number,
-      col: number): void {
-    let stateBeforeMove: IState = boardBeforeMove ? {board: boardBeforeMove, delta: null} : null;
+      stateBeforeMove: IState,
+      delta: BoardDelta): void {
     // We expect an exception to be thrown :)
     let didThrowException = false;
     try {
-      gameLogic.createMove(stateBeforeMove, row, col, turnIndexBeforeMove);
+      gameLogic.createMove(stateBeforeMove, turnIndexBeforeMove, delta);
     } catch (e) {
       didThrowException = true;
     }
@@ -28,110 +20,254 @@ describe("In TicTacToe", function() {
 
   function expectMove(
       turnIndexBeforeMove: number,
-      boardBeforeMove: Board,
-      row: number,
-      col: number,
-      boardAfterMove: Board,
+      stateBeforeMove: IState,
+      delta: BoardDelta,
+      stateAfterMove: IState,
       turnIndexAfterMove: number,
       endMatchScores: number[]): void {
+
     let expectedMove:IMove = {
         turnIndex: turnIndexAfterMove,
         endMatchScores: endMatchScores,
-        state: {board: boardAfterMove, delta: {row: row, col: col}}
+        state: stateAfterMove
       };
-    let stateBeforeMove: IState = boardBeforeMove ? {board: boardBeforeMove, delta: null} : null;
-    let move: IMove = gameLogic.createMove(stateBeforeMove, row, col, turnIndexBeforeMove);
+
+    let move: IMove = gameLogic.createMove(stateBeforeMove, turnIndexBeforeMove, delta);
     expect(angular.equals(move, expectedMove)).toBe(true);
+    // expect(move).toBeNull();
   }
 
   it("Initial move", function() {
     let move: IMove = gameLogic.createInitialMove();
-    let expectedMove:IMove = {
-        turnIndex: X_TURN,
-        endMatchScores: NO_ONE_WINS,
-        state: {board: 
-          [['', '', ''],
-          ['', '', ''],
-          ['', '', '']], delta: null}
-      };
-    expect(angular.equals(move, expectedMove)).toBe(true);
-  });
-  
-  it("placing X in 0x0 from initial state", function() {
-    expectMove(X_TURN, null, 0, 0,
-      [['X', '', ''],
-       ['', '', ''],
-       ['', '', '']], O_TURN, NO_ONE_WINS);
+    expect(move.endMatchScores).toBeNull();
+    expect(angular.equals(move.turnIndex, 0)).toBe(true);
+
+    var state: IState = move.state;
+    expect(state.delta).toBeNull();
+
+    var players: IPlayer[] = state.players;
+    expect(players).toBeDefined();
+    expect(angular.equals(players.length, 2)).toBe(true);
+    expect(angular.equals(players[0].hand.length, 7)).toBe(true);
+    expect(angular.equals(players[1].hand.length, 7)).toBe(true);
+
+    var house: IPlayer = state.house;
+    expect(house).toBeDefined();
+    expect(angular.equals(house.hand.length, 14)).toBe(true);
+
+    expect(state.board).toBeDefined();
+
   });
 
-  it("placing O in 0x1 after X placed X in 0x0", function() {
-    expectMove(O_TURN,
-      [['X', '', ''],
-       ['', '', ''],
-       ['', '', '']], 0, 1,
-      [['X', 'O', ''],
-       ['', '', ''],
-       ['', '', '']], X_TURN, NO_ONE_WINS);
+  it("Place first tile in the game", function() {
+
+    var stateBeforeMove: IState = { board: <IBoard>{},
+                                    delta: null,
+                                    players: [{ id: 0, hand: [{ tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 }]},
+                                               { id: 1, hand: [ { tileKey: 'tile16', leftNumber: 1, rightNumber: 5 },{ tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 }] } ],
+                                    house: { id: -1, hand: [{ tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+    var delta: BoardDelta = { play: Play.RIGHT, tileKey: 'tile2' };
+
+    var stateAfterMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    rightMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    currentRight: 1, currentLeft: 1 },
+                                    delta: { play: 1, tileKey: 'tile2' },
+                                    players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile16', leftNumber: 1, rightNumber: 5 },{ tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                    house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    expectMove(0, stateBeforeMove, delta, stateAfterMove, 1, null);
   });
 
-  it("placing an O in a non-empty position is illegal", function() {
-    expectException(O_TURN,
-      [['X', '', ''],
-       ['', '', ''],
-       ['', '', '']], 0, 0);
+  it("Play tile to the right", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    rightMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    currentRight: 1, currentLeft: 1 },
+                                    delta: { play: 1, tileKey: 'tile2' },
+                                    players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile16', leftNumber: 1, rightNumber: 5 },{ tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                    house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.RIGHT, tileKey: 'tile16' };
+
+    var stateAfterMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } }
+
+    expectMove(1, stateBeforeMove, delta, stateAfterMove, 0, null);
   });
 
-  it("cannot move after the game is over", function() {
-    expectException(O_TURN,
-      [['X', 'O', ''],
-       ['X', 'O', ''],
-       ['X', '', '']], 2, 1);
+  it("Play tile to the left", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.LEFT, tileKey: 'tile7' };
+
+    var stateAfterMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, leftTile: { tileKey: 'tile7', leftNumber: 1, rightNumber: 3, orientation: 1 } },
+                                            leftMostTile: { tileKey: 'tile7', leftNumber: 1, rightNumber: 3, orientation: 1 },
+                                            rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 },
+                                            currentRight: 5, currentLeft: 3 },
+                                    delta: { play: 0, tileKey: 'tile7' },
+                                    players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                                { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                    house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    expectMove(0, stateBeforeMove, delta, stateAfterMove, 1, null);
   });
 
-  it("placing O in 2x1", function() {
-    expectMove(O_TURN,
-      [['O', 'X', ''],
-       ['X', 'O', ''],
-       ['X', '', '']], 2, 1,
-      [['O', 'X', ''],
-       ['X', 'O', ''],
-       ['X', 'O', '']], X_TURN, NO_ONE_WINS);
+  it("Try to pass when play is possible", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 },
+                                                  currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.PASS, tileKey: undefined };
+
+    expectException(1, stateBeforeMove, delta);
   });
 
-  it("X wins by placing X in 2x0", function() {
-    expectMove(X_TURN,
-      [['X', 'O', ''],
-       ['X', 'O', ''],
-       ['', '', '']], 2, 0,
-      [['X', 'O', ''],
-       ['X', 'O', ''],
-       ['X', '', '']], NO_ONE_TURN, X_WIN_SCORES);
+  it("Buy tile from house", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.BUY, tileKey: 'tile11' };
+
+    var stateAfterMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                          leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 }, rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 },
+                                          currentRight: 5, currentLeft: 1 }, delta: { play: 2, tileKey: 'tile11' },
+                                   players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                   house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    expectMove(1, stateBeforeMove, delta, stateAfterMove, 1, null);
   });
 
-  it("O wins by placing O in 1x1", function() {
-    expectMove(O_TURN,
-      [['X', 'X', 'O'],
-       ['X', '', ''],
-       ['O', '', '']], 1, 1,
-      [['X', 'X', 'O'],
-       ['X', 'O', ''],
-       ['O', '', '']], NO_ONE_TURN, O_WIN_SCORES);
+  it("Buy non-existing tile from house", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.BUY, tileKey: 'tile66' };
+
+    expectException(1, stateBeforeMove, delta);
   });
 
-  it("the game ties when there are no more empty cells", function() {
-    expectMove(X_TURN,
-      [['X', 'O', 'X'],
-       ['X', 'O', 'O'],
-       ['O', 'X', '']], 2, 2,
-      [['X', 'O', 'X'],
-       ['X', 'O', 'O'],
-       ['O', 'X', 'X']], NO_ONE_TURN, TIE_SCORES);
+  it("Buy tile from empty house", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ ] } };
+
+    var delta: BoardDelta = { play: Play.BUY, tileKey: 'tile11' };
+
+    expectException(1, stateBeforeMove, delta);
   });
 
-  it("placing X outside the board (in 0x3) is illegal", function() {
-    expectException(X_TURN,
-      [['', '', ''],
-       ['', '', ''],
-       ['', '', '']], 0, 3);
+  it("Invalid play", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ ] } };
+
+    var delta: BoardDelta = { play: undefined, tileKey: 'tile11' };
+
+    expectException(1, stateBeforeMove, delta);
   });
+
+  it("Invalid first tile", function() {
+
+    var stateBeforeMove: IState = { board: <IBoard>{},
+                                    delta: null,
+                                    players: [{ id: 0, hand: [{ tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 }]},
+                                               { id: 1, hand: [ { tileKey: 'tile16', leftNumber: 1, rightNumber: 5 },{ tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 }] } ],
+                                    house: { id: -1, hand: [{ tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+    var delta: BoardDelta = { play: Play.RIGHT, tileKey: 'tile8' };
+
+    expectException(0, stateBeforeMove, delta);
+  });
+
+  it("Play right tile with wrong number", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    rightMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                    currentRight: 1, currentLeft: 1 },
+                                    delta: { play: 1, tileKey: 'tile2' },
+                                    players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile16', leftNumber: 1, rightNumber: 5 },{ tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                    house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.RIGHT, tileKey: 'tile18' };
+
+    expectException(1, stateBeforeMove, delta);
+  });
+
+  it("Play left tile with wrong number", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.LEFT, tileKey: 'tile8' };
+
+    expectException(0, stateBeforeMove, delta);
+  });
+
+  it("Play tile with non-existing key", function() {
+
+    var stateBeforeMove: IState = { board: { root: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1, rightTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 } },
+                                                  leftMostTile: { tileKey: 'tile2', leftNumber: 1, rightNumber: 1 },
+                                                  rightMostTile: { tileKey: 'tile16', leftNumber: 1, rightNumber: 5, orientation: 0 }, currentRight: 5, currentLeft: 1 },
+                                  delta: { play: 1, tileKey: 'tile16' },
+                                  players: [ { id: 0, hand: [ { tileKey: 'tile8', leftNumber: 2, rightNumber: 3 },{ tileKey: 'tile25', leftNumber: 4, rightNumber: 6 },{ tileKey: 'tile3', leftNumber: 0, rightNumber: 2 },{ tileKey: 'tile9', leftNumber: 3, rightNumber: 3 },{ tileKey: 'tile7', leftNumber: 1, rightNumber: 3 },{ tileKey: 'tile15', leftNumber: 0, rightNumber: 5 } ] },
+                                              { id: 1, hand: [ { tileKey: 'tile18', leftNumber: 3, rightNumber: 5 },{ tileKey: 'tile17', leftNumber: 2, rightNumber: 5 },{ tileKey: 'tile6', leftNumber: 0, rightNumber: 3 },{ tileKey: 'tile21', leftNumber: 0, rightNumber: 6 },{ tileKey: 'tile14', leftNumber: 4, rightNumber: 4 },{ tileKey: 'tile26', leftNumber: 5, rightNumber: 6 } ] } ],
+                                  house: { id: -1, hand: [ { tileKey: 'tile1', leftNumber: 0, rightNumber: 1 },{ tileKey: 'tile11', leftNumber: 1, rightNumber: 4 },{ tileKey: 'tile20', leftNumber: 5, rightNumber: 5 },{ tileKey: 'tile0', leftNumber: 0, rightNumber: 0 },{ tileKey: 'tile13', leftNumber: 3, rightNumber: 4 },{ tileKey: 'tile22', leftNumber: 1, rightNumber: 6 },{ tileKey: 'tile5', leftNumber: 2, rightNumber: 2 },{ tileKey: 'tile24', leftNumber: 3, rightNumber: 6 },{ tileKey: 'tile12', leftNumber: 2, rightNumber: 4 },{ tileKey: 'tile10', leftNumber: 0, rightNumber: 4 },{ tileKey: 'tile4', leftNumber: 1, rightNumber: 2 },{ tileKey: 'tile19', leftNumber: 4, rightNumber: 5 },{ tileKey: 'tile27', leftNumber: 6, rightNumber: 6 },{ tileKey: 'tile23', leftNumber: 2, rightNumber: 6 } ] } };
+
+    var delta: BoardDelta = { play: Play.LEFT, tileKey: 'tile66' };
+
+    expectException(0, stateBeforeMove, delta);
+  });
+
+
 });

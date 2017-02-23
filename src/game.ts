@@ -588,13 +588,24 @@ export function getImageClass(tileLevel: number, tree: number, classForCompariso
     return undefined;
   }
 
-  function canStartGame(playerIndex: number): boolean {
-    if ((state.board && state.board.root) || !state.players || !state.players[playerIndex] || !state.players[playerIndex].hand){ return false; }
+  function canMakeAPlay(playerIndex: number): boolean {
+    if (!state.board || !state.players || !state.players[playerIndex] || !state.players[playerIndex].hand) {
+          return false;
+    }
+
     var player: IPlayer = state.players[playerIndex];
     for (var i = 0; i < player.hand.length; i++) {
       var tile: ITile = player.hand[i];
-      if (tile.leftNumber === tile.rightNumber) {
-        return true;
+      if(!state.board.root) {
+        if (tile.leftNumber === tile.rightNumber) {
+          return true;
+        }
+      } else {
+        var board = state.board;
+        if(tile.leftNumber === board.currentLeft || tile.leftNumber === board.currentRight ||
+          tile.rightNumber === board.currentLeft || tile.rightNumber === board.currentRight) {
+            return true;
+          }
       }
     }
 
@@ -602,11 +613,12 @@ export function getImageClass(tileLevel: number, tree: number, classForCompariso
   }
 
   function canBuy(): boolean {
-    return state.house && state.house.hand && state.house.hand.length !== 0;
+    return state.house && state.house.hand && state.house.hand.length > 0;
   }
 
   export function isPassAllowed(): boolean {
-    var canStartOrBuy: boolean = (!state.board || !state.board.root) ? canStartGame(yourPlayerIndex()) : canBuy();
+    var canStartOrBuy: boolean = canMakeAPlay(yourPlayerIndex()) ||
+      canBuy();
                     ;
     return !hasGameEnded() && !canStartOrBuy;
   }

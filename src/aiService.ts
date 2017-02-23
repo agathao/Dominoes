@@ -12,16 +12,96 @@ module aiService {
    */
   export function getPossibleMoves(state: IState, turnIndexBeforeMove: number): IMove[] {
     let possibleMoves: IMove[] = [];
-    for (let i = 0; i < gameLogic.ROWS; i++) {
-      for (let j = 0; j < gameLogic.COLS; j++) {
+
+    //This is the initial move
+    if (!state) {
+      possibleMoves.push(gameLogic.createInitialMove());
+      return possibleMoves;
+    }
+
+    var board: IBoard = state.board;
+    var hand: ITile[] = state.players[turnIndexBeforeMove].hand;
+
+    var leftNumber : number = board.currentLeft;
+    var rightNumber : number = board.currentRight;
+
+    var play: Play;
+    var delta: BoardDelta;
+    for (var i = 0; i < hand.length; i++){
+      play = undefined;
+
+      if (!board || !board.root){
+        if (hand[i].leftNumber === hand[i].rightNumber){
+          play = Play.RIGHT;
+        }
+      } else {
+        play = getPlayBasedOnBoardTiles(hand[i], leftNumber, rightNumber);
+      }
+
+      if (play !== undefined){
+        delta = { tileKey: hand[i].tileKey, play: play };
         try {
-          possibleMoves.push(gameLogic.createMove(state, i, j, turnIndexBeforeMove));
+          possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
         } catch (e) {
-          // The cell in that position was full.
+          //the move was not possible
+        }
+
+      }
+    }
+
+    var houseTiles: ITile[] = state.house.hand;
+
+    //In case we did not find any play options
+    if (possibleMoves.length === 0) {
+
+      //If this is not the first tile in the game
+      if (board.root) {
+
+        //If there are still tiles to buy, make buy play
+        if (houseTiles.length > 0) {
+          for(var i = 0; i < houseTiles.length; i++) {
+            var delta : BoardDelta = { tileKey: houseTiles[i].tileKey, play: Play.BUY };
+            try {
+              possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
+            } catch (e) {
+              //the movie was not possible
+            }
+          }
+        }
+        //Otherwise, pass
+        else {
+          var delta : BoardDelta = { tileKey: undefined, play: Play.PASS };
+          try {
+            possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
+          } catch (e) {
+            //the movie was not possible
+          }
+        }
+
+      }
+      //This is the first tile to be played and we did not find any move options
+      else if(hand.length > 0) {
+        var delta : BoardDelta = { tileKey: undefined, play: Play.PASS };
+        try {
+          possibleMoves.push(gameLogic.createMove(state, turnIndexBeforeMove, delta));
+        } catch (e) {
+          //the movie was not possible
         }
       }
     }
+
     return possibleMoves;
+  }
+
+  function getPlayBasedOnBoardTiles(tile: ITile, leftNumber: number, rightNumber: number): Play {
+    if (tile.leftNumber === leftNumber || tile.rightNumber === leftNumber) {
+      return Play.LEFT;
+    }
+    else if (tile.leftNumber === rightNumber || tile.rightNumber ===  rightNumber) {
+      return Play.RIGHT;
+    }
+
+    return undefined;
   }
 
   /**

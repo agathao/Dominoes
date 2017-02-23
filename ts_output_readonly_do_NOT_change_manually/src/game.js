@@ -554,24 +554,34 @@ var game;
         return undefined;
     }
     game.getImageSource = getImageSource;
-    function canStartGame(playerIndex) {
-        if ((game.state.board && game.state.board.root) || !game.state.players || !game.state.players[playerIndex] || !game.state.players[playerIndex].hand) {
+    function canMakeAPlay(playerIndex) {
+        if (!game.state.board || !game.state.players || !game.state.players[playerIndex] || !game.state.players[playerIndex].hand) {
             return false;
         }
         var player = game.state.players[playerIndex];
         for (var i = 0; i < player.hand.length; i++) {
             var tile = player.hand[i];
-            if (tile.leftNumber === tile.rightNumber) {
-                return true;
+            if (!game.state.board.root) {
+                if (tile.leftNumber === tile.rightNumber) {
+                    return true;
+                }
+            }
+            else {
+                var board = game.state.board;
+                if (tile.leftNumber === board.currentLeft || tile.leftNumber === board.currentRight ||
+                    tile.rightNumber === board.currentLeft || tile.rightNumber === board.currentRight) {
+                    return true;
+                }
             }
         }
         return false;
     }
     function canBuy() {
-        return game.state.house && game.state.house.hand && game.state.house.hand.length !== 0;
+        return game.state.house && game.state.house.hand && game.state.house.hand.length > 0;
     }
     function isPassAllowed() {
-        var canStartOrBuy = (!game.state.board || !game.state.board.root) ? canStartGame(yourPlayerIndex()) : canBuy();
+        var canStartOrBuy = canMakeAPlay(yourPlayerIndex()) ||
+            canBuy();
         ;
         return !hasGameEnded() && !canStartOrBuy;
     }
