@@ -2,7 +2,7 @@
   "name": "tictactoe",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yoav-zibin/TicTacToe.git"
+    "url": "https://github.com/agathao/Dominoes.git"
   },
   "version": "1.0.0",
   "devDependencies": {
