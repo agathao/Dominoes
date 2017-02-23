@@ -8,7 +8,7 @@ var urlsToCache = [
   '//agathao.github.io/Dominoes/dist/js/everything.min.js',
   '//agathao.github.io/Dominoes/dist/css/everything.min.css',
 ];
-var CACHE_NAME = 'cache-v2017-02-23T16:45:58.102Z';
+var CACHE_NAME = 'cache-v2017-02-23T16:46:44.407Z';
 
 self.addEventListener('activate', function(event) {
   event.waitUntil(
