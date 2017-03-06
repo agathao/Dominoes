@@ -452,12 +452,12 @@ module game {
   */
   function constructImageUrl(tile: ITile) : string {
     if (tile === undefined || tile === null) {
-        return "imgs/dominoes/domino-blank.svg";
+        return "imgs/domino-blank.svg";
     }
 
     return tile.leftNumber <= tile.rightNumber ?
-      "imgs/dominoes/domino-" + tile.leftNumber + "-" + tile.rightNumber + ".svg" :
-      "imgs/dominoes/domino-" + tile.rightNumber + "-" + tile.leftNumber + ".svg";
+      "imgs/domino-" + tile.leftNumber + "-" + tile.rightNumber + ".svg" :
+      "imgs/domino-" + tile.rightNumber + "-" + tile.leftNumber + ".svg";
   }
 
   //TODO: RETURN FOR GAME END
@@ -503,7 +503,7 @@ export function getPlayerIconSource(player: number): string {
     var imageNumber = player % 2; //2 is chosen because there are only two images.
     if (imageNumber < 0 || imageNumber === -0){ imageNumber = 0; }
 
-    return "./imgs/player/image" + imageNumber + ".svg";
+    return "./imgs/image" + imageNumber + ".svg";
 }
 
 export function getCurrentPlayerIconSource(player: number): string {

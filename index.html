@@ -81,7 +81,7 @@
 
   <!-- Right Side: area for house tiles -->
   <div class="boneyard" ng-if="!game.hasGameEnded()">
-      <img ng-repeat="tile in game.getNumberOfTilesForBoneYard()" src="imgs/dominoes/domino-blank.svg"
+      <img ng-repeat="tile in game.getNumberOfTilesForBoneYard()" src="imgs/domino-blank.svg"
       class="tile" ng-click="game.makeBuyPlay(tile)">
   </div>
 </div>

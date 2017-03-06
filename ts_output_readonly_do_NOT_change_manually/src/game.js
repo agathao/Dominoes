@@ -428,11 +428,11 @@ var game;
     */
     function constructImageUrl(tile) {
         if (tile === undefined || tile === null) {
-            return "imgs/dominoes/domino-blank.svg";
+            return "imgs/domino-blank.svg";
         }
         return tile.leftNumber <= tile.rightNumber ?
-            "imgs/dominoes/domino-" + tile.leftNumber + "-" + tile.rightNumber + ".svg" :
-            "imgs/dominoes/domino-" + tile.rightNumber + "-" + tile.leftNumber + ".svg";
+            "imgs/domino-" + tile.leftNumber + "-" + tile.rightNumber + ".svg" :
+            "imgs/domino-" + tile.rightNumber + "-" + tile.leftNumber + ".svg";
     }
     //TODO: RETURN FOR GAME END
     function getTileImageSourceForOpponent(playerId, tileId) {
@@ -480,7 +480,7 @@ var game;
         if (imageNumber < 0 || imageNumber === -0) {
             imageNumber = 0;
         }
-        return "./imgs/player/image" + imageNumber + ".svg";
+        return "./imgs/image" + imageNumber + ".svg";
     }
     game.getPlayerIconSource = getPlayerIconSource;
     function getCurrentPlayerIconSource(player) {
