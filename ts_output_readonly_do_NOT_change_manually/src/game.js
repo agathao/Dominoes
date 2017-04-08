@@ -134,7 +134,6 @@ var game;
         log.info("Dominoes game got updateUI:", params);
         game.didMakeMove = false; // Only one move per updateUI
         game.currentUpdateUI = params;
-        //clearAnimationTimeout();
         game.state = params.state;
         if (isFirstMove()) {
             game.state = gameLogic.getInitialState();
@@ -227,7 +226,7 @@ var game;
         return tile && tile.orientation === Orientation.RIGHT_LEFT;
     }
     function populateCaches(tree, tileLevel, isRight, parent) {
-        if (!game.state) {
+        if (!game.state || game.state == null) {
             return;
         }
         var board = game.state.board;
@@ -335,7 +334,7 @@ var game;
         }
     }
     function isFirstMove() {
-        return !game.currentUpdateUI.state;
+        return !game.currentUpdateUI.state || game.currentUpdateUI.state == null;
     }
     function yourPlayerIndex() {
         return game.currentUpdateUI.yourPlayerIndex;
@@ -386,7 +385,7 @@ var game;
         if (window.location.search === '?throwException') {
             throw new Error("Throwing the error because URL has '?throwException'");
         }
-        if (!isHumanTurn() || !game.state ||
+        if (!isHumanTurn() || !game.state || game.state == null ||
             !game.state.house || !game.state.house.hand[tileIndex]) {
             return;
         }
@@ -469,7 +468,7 @@ var game;
     /* Get number of players but exclude current player
     */
     function getNumberOfPlayers() {
-        if (!game.state || !game.state.players) {
+        if (!game.state || game.state == null || !game.state.players) {
             return 1;
         }
         return game.state.players.length - 1;

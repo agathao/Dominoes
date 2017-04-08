@@ -148,14 +148,10 @@ module game {
     log.info("Dominoes game got updateUI:", params);
     didMakeMove = false; // Only one move per updateUI
     currentUpdateUI = params;
-    //clearAnimationTimeout();
+
     state = params.state;
     if (isFirstMove()) {
       state = gameLogic.getInitialState();
-      //let move = gameLogic.createInitialMove();
-      //log.info("updateUI(): make initial move. Calling makeMove " + JSON.stringify(move));
-      //gameService.makeMove(move);
-      //return;
     }
     populateCaches(0, 0, undefined, undefined);
 
@@ -223,7 +219,7 @@ module game {
 
   function populateCaches(tree: number, tileLevel: number, isRight: boolean, parent: ITile) {
 
-    if(!state) {
+    if(!state || state == null) {
       return;
     }
     var board: IBoard = state.board;
@@ -352,7 +348,7 @@ module game {
   }
 
   function isFirstMove() {
-    return !currentUpdateUI.state;
+    return !currentUpdateUI.state || currentUpdateUI.state == null;
   }
 
   function yourPlayerIndex() {
@@ -412,7 +408,7 @@ module game {
     if (window.location.search === '?throwException') { // to test encoding a stack trace with sourcemap
       throw new Error("Throwing the error because URL has '?throwException'");
     }
-    if (!isHumanTurn() || !state ||
+    if (!isHumanTurn() || !state || state == null ||
       !state.house || !state.house.hand[tileIndex]) { return; }
 
     try
@@ -492,7 +488,7 @@ module game {
   /* Get number of players but exclude current player
   */
 export function getNumberOfPlayers(): number {
-  if (!state || !state.players) {
+  if (!state || state == null || !state.players) {
     return 1;
   }
 

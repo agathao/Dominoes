@@ -43,7 +43,7 @@ var urlsToCache = [
   "//agathao.github.io/Dominoes/dist/imgs/domino-6-6.svg",
   "//agathao.github.io/Dominoes/dist/imgs/domino-blank.svg",
 ];
-var CACHE_NAME = 'cache-v2017-03-06T17:52:54.186Z';
+var CACHE_NAME = 'cache-v2017-04-08T19:26:38.932Z';
 
 self.addEventListener('activate', function(event) {
   event.waitUntil(
