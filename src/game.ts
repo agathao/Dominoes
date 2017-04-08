@@ -618,7 +618,7 @@ export function getImageClass(tileLevel: number, tree: number, classForCompariso
 
   export function isPassAllowed(): boolean {
     var canStartOrBuy: boolean = canMakeAPlay(yourPlayerIndex()) ||
-      canBuy();
+      (canBuy() && state.board.root != undefined);
                     ;
     return !hasGameEnded() && !canStartOrBuy;
   }

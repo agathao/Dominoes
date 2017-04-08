@@ -581,7 +581,7 @@ var game;
     }
     function isPassAllowed() {
         var canStartOrBuy = canMakeAPlay(yourPlayerIndex()) ||
-            canBuy();
+            (canBuy() && game.state.board.root != undefined);
         ;
         return !hasGameEnded() && !canStartOrBuy;
     }
