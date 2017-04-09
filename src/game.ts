@@ -119,17 +119,6 @@ module game {
     let playerIdToProposal = communityUI.playerIdToProposal;
     didMakeMove = !!playerIdToProposal[communityUI.yourPlayerInfo.playerId];
     proposals = [];
-    // for (let i = 0; i < gameLogic.ROWS; i++) {
-    //   proposals[i] = [];
-    //   for (let j = 0; j < gameLogic.COLS; j++) {
-    //     proposals[i][j] = 0;
-    //   }
-    // }
-    // for (let playerId in playerIdToProposal) {
-    //   let proposal = playerIdToProposal[playerId];
-    //   let delta = proposal.data;
-    //   proposals[delta.row][delta.col]++;
-    // }
   }
   export function isProposal(row: number, col: number) {
     return proposals && proposals[row][col] > 0;
@@ -151,6 +140,9 @@ module game {
 
     state = params.state;
     if (isFirstMove()) {
+      tileCache = [];
+      treeSourcesCache = [];
+      treeClassesCache = [];
       state = gameLogic.getInitialState();
     }
     populateCaches(0, 0, undefined, undefined);

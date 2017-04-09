@@ -364,7 +364,7 @@ module gameLogic {
   export function createMove(stateBeforeMove: IState, turnIndexBeforeMove: number,
     delta: BoardDelta): IMove {
 
-      if (!stateBeforeMove) {
+      if (!stateBeforeMove || stateBeforeMove == null) {
         stateBeforeMove = getInitialState();
       }
 

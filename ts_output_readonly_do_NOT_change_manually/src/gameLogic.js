@@ -263,7 +263,7 @@ var gameLogic;
     * turnIndexBeforeMove makes a move.
     */
     function createMove(stateBeforeMove, turnIndexBeforeMove, delta) {
-        if (!stateBeforeMove) {
+        if (!stateBeforeMove || stateBeforeMove == null) {
             stateBeforeMove = getInitialState();
         }
         var operations, boardAfterMove, playersAfterMove, playerAfterMove, houseAfterMove, playedTileKey = !(delta) ? undefined : delta.tileKey, play = delta === undefined ? undefined : delta.play, players = stateBeforeMove.players, house = stateBeforeMove.house, board = stateBeforeMove.board;
